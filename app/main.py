@@ -46,6 +46,11 @@ async def health_check():
     """Public health/uptime endpoint. No authentication required."""
     return {"status": "ok", "service": "Zylo AI Job Runner"}
 
+@app.head("/health")
+async def health_check_head():
+    """Public HEAD health check for uptime monitors. No authentication required."""
+    return {"status": "ok", "service": "Zylo AI Job Runner"}
+
 @app.post("/jobs/start", dependencies=[Depends(verify_api_credentials)])
 async def create_job(payload: JobRequest):
     """
