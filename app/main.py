@@ -41,6 +41,11 @@ async def get_openapi():
     """OpenAPI schema protected by HTTP Basic Auth."""
     return app.openapi()
 
+@app.get("/health")
+async def health_check():
+    """Public health/uptime endpoint. No authentication required."""
+    return {"status": "ok", "service": "Zylo AI Job Runner"}
+
 @app.post("/jobs/start", dependencies=[Depends(verify_api_credentials)])
 async def create_job(payload: JobRequest):
     """
