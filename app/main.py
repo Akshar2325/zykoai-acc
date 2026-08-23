@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import HTTPBasic
 from .config import API_USERNAME, API_PASSWORD, SWAGGER_USERNAME, SWAGGER_PASSWORD, PORT
 from .auth import verify_api_credentials, verify_swagger_credentials
-from .jobs import start_job, get_job_status
+from .jobs import start_job, get_job_status, get_all_jobs_status
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ class JobRequest(BaseModel):
     max_workers: int = 1
     chat_model: str = "nemotron-3-ultra"
     chat_message: str = "Hello! What can you do?"
+    progress_interval: int = 100
 
 @app.on_event("startup")
 def startup_event():
@@ -63,6 +64,13 @@ async def create_job(payload: JobRequest):
     
     return {"job_id": job_id, "status": "started"}
 
+@app.get("/jobs", dependencies=[Depends(verify_api_credentials)])
+async def list_jobs():
+    """
+    Get the status of ALL jobs at once. No job ID required.
+    """
+    return get_all_jobs_status()
+
 @app.get("/jobs/{job_id}", dependencies=[Depends(verify_api_credentials)])
 async def get_job(job_id: str):
     """
@@ -80,6 +88,7 @@ async def get_job(job_id: str):
         "start_time": job["start_time"],
         "completion_time": job["completion_time"],
         "runtime": job["runtime"],
+        "progress": job.get("progress"),
         "output_file": job["output_file"],
         "error": job["error"],
         "discord_error": job["discord_error"],
