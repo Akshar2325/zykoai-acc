@@ -26,7 +26,25 @@ class JobRequest(BaseModel):
 
 @app.on_event("startup")
 def startup_event():
-    logger.info("Server starting up")
+    # Re-log env diagnostics at startup (visible in Render logs)
+    # Import here to ensure config's print has already run, and re-check live values
+    from . import config as _cfg
+    import os
+    def _mask(v):
+        if not v: return "NOT SET ❌"
+        return f"{v[:3]}***{v[-2:]} (len={len(v)})" if len(v) > 4 else f"*** (len={len(v)})"
+    print("=" * 60, flush=True)
+    print("[startup] Server starting up — ENV CHECK", flush=True)
+    print(f"[startup] API_USERNAME={_mask(os.getenv('API_USERNAME') or _cfg.API_USERNAME)}", flush=True)
+    print(f"[startup] API_PASSWORD={_mask(os.getenv('API_PASSWORD') or _cfg.API_PASSWORD)}", flush=True)
+    print(f"[startup] SWAGGER_USERNAME={_mask(os.getenv('SWAGGER_USERNAME') or _cfg.SWAGGER_USERNAME)}", flush=True)
+    print(f"[startup] SWAGGER_PASSWORD={_mask(os.getenv('SWAGGER_PASSWORD') or _cfg.SWAGGER_PASSWORD)}", flush=True)
+    print(f"[startup] DISCORD_WEBHOOK_URL={'SET ✅' if (os.getenv('DISCORD_WEBHOOK_URL') or _cfg.DISCORD_WEBHOOK_URL) else 'NOT SET ❌'}", flush=True)
+    print(f"[startup] PORT={os.getenv('PORT') or _cfg.PORT}", flush=True)
+    print("=" * 60, flush=True)
+    logger.info("Server starting up — env check logged above")
+    if not _cfg.API_USERNAME or not _cfg.API_PASSWORD:
+        logger.warning("API credentials NOT SET — all /jobs/* requests will return 401! Set them in Render > Environment")
 
 @app.get("/docs", dependencies=[Depends(verify_swagger_credentials)])
 async def get_docs():
